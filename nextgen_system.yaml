@@ -1,0 +1,26 @@
+---
+#Configuratio file for specifying system details for running an analysis pipeline
+
+# -- Base Setup
+#
+
+
+resources:
+    log:
+        dir: log
+    bwa:
+        cmd: bwa
+        cores: 16
+    samtools:
+        memory: 2G
+        cores: 16
+    gatk:
+        jvm_opts: ["-Xms750m", '-Xmx2500m']
+        dir: /usr/local/share/java/gatk
+
+    gatk_haplotype:
+        jvm_opts: ['-Xms2g', '-Xmx5500m']
+
+    picard:
+        jvm_opts: ['-Xms750m', '-Xmx2500m']
+
