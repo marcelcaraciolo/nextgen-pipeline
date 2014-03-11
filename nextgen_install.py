@@ -20,6 +20,7 @@ import contextlib
 import shutil
 import platform
 import datetime
+import zipfile
 
 remotes = {"anaconda": "http://repo.continuum.io/miniconda/Miniconda-3.0.0-%s-x86_64.sh",
             'system_config':  'nextgen_system.yaml',
@@ -61,11 +62,55 @@ def install_data_tools(sys_argv, args, nextgen):
 
     print('Installing nextgen tools')
     #install homebrew, BWA, Picard, SamTools, GATK
+    install_brew()
 
+    install_bwa()
+
+    install_picard(args)
+
+    install_samtools()
+
+    install_gatk()
 
     print('Installing nextgen data files')
     install_nextgen_data(args, remotes)
 
+def install_brew():
+    '''Homebrew package manager for OS system'''
+
+    #Check if homew brew is installed
+    try:
+        subprocess.check_call(['brew', "--version"])
+    except OSError:
+        print('Brew not installed. Installing brew...')
+        subprocess.check_call('ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go/install)"')
+
+def install_bwa():
+    '''BWA: aligns short nucleotide sequences against a long reference sequence.
+        http://bio-bwa.sourceforge.net/
+    '''
+    url_bwa_brew = 'https://raw.github.com/Homebrew/homebrew-science/master/bwa.rb'
+    subprocess.call('brew install %s' % url_bwa_brew, shell=True)
+
+def install_picard(args):
+    '''Command-line utilities that manipulate BAM files with a Java API.
+    http://picard.sourceforge.net/
+    '''
+    url = 'http://downloads.sourceforge.net/project/picard/picard-tools/%s/picard-tools-%s.zip'
+    version = '1.109'
+    if not os.path.exists(os.path.join(args.tooldir,('picard-tools-%s.zip' % version))):
+        subprocess.check_call(['wget', url % (version, version)])
+        with zipfile.ZipFile('picard-tools-%s.zip' % version, 'r') as z:
+            z.extractall(args.tooldir)
+        sudo_cmd = ["sudo"]
+        cmd = ['rm', '-f', 'picard-tools-%s.zip' % version]
+        subprocess.check_call(sudo_cmd + cmd)
+
+def install_samtools():
+    pass
+
+def install_gatk():
+    pass
 
 def install_nextgen_data(args, REMOTES):
     pass
