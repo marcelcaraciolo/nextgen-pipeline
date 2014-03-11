@@ -22,7 +22,9 @@ import platform
 import datetime
 
 remotes = {"anaconda": "http://repo.continuum.io/miniconda/Miniconda-3.0.0-%s-x86_64.sh",
-            'system_config':  'nextgen_system.yaml'
+            'system_config':  'nextgen_system.yaml',
+            'requirements': 'https://raw.github.com/genomika/nextgen-pipeline/master/requirements.txt'
+
 }
 
 
@@ -37,7 +39,7 @@ def main(args, sys_argv):
         nextgen = bootstrap_nextgen(anaconda, args, remotes)
 
     print("Installing data and third party dependencies")
-    #subprocess.check_call([nextgen["pipeline.py"], "upgrade"] + _clean_args(sys_argv, nextgen))
+    install_data_tools(sys_argv, args, nextgen)
     system_config = write_system_config(remotes['system_config'], args.datadir, args.tooldir)
 
     print("Finished: nextgen-pipeline, tools and data installed")
@@ -47,6 +49,26 @@ def main(args, sys_argv):
     print("  Ready to use system configuration at:\n %s" % system_config)
     print("Edit configuration file as need to match  your machine")
 
+
+def install_data_tools(sys_argv, args, nextgen):
+    '''
+    Handle installation and updates of nextgen, third party software and data.
+    Automated installation tool and in-place updates to install additional data
+    and software.
+    '''
+    base = [ x for x in sys_argv if x.startswith('-') or not
+                args.datadir == os.path.abspath(os.path.expanduser(x))]
+
+    print('Installing nextgen tools')
+    #install homebrew, BWA, Picard, SamTools, GATK
+
+
+    print('Installing nextgen data files')
+    install_nextgen_data(args, remotes)
+
+
+def install_nextgen_data(args, REMOTES):
+    pass
 
 def write_system_config(base_url, datadir, tooldir):
     """
@@ -85,17 +107,17 @@ def write_system_config(base_url, datadir, tooldir):
                         line = '%s: %s\n' % (line.split(':')[0], \
                                 os.path.join(java_basedir, final_dir))
                     in_prog = None
-                print line
                 out_handler.write(line)
 
     return out_file
 
 
+
 def bootstrap_nextgen(anaconda, args, remotes):
     """Install nextgen to bootstrap rest of installation process.
     """
-    #subprocess.check_call([anaconda["pip"], "install", "fabric"])
-    #subprocess.check_call([anaconda['pip'], 'install', '-r', remotes['requirements']])
+    subprocess.check_call([anaconda["pip"], "install", "fabric"])
+    subprocess.check_call([anaconda['pip'], 'install', '-r', remotes['requirements']])
 
     out = {}
     for script in ["pipeline.py"]:
