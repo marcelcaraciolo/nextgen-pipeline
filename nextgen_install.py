@@ -98,7 +98,7 @@ def install_picard(args):
     '''
     url = 'http://downloads.sourceforge.net/project/picard/picard-tools/%s/picard-tools-%s.zip'
     version = '1.109'
-    if not os.path.exists(os.path.join(args.tooldir,('picard-tools-%s.zip' % version))):
+    if not os.path.exists(os.path.join(args.tooldir,('picard-tools-%s' % version))):
         subprocess.check_call(['wget', url % (version, version)])
         with zipfile.ZipFile('picard-tools-%s.zip' % version, 'r') as z:
             z.extractall(args.tooldir)
@@ -107,7 +107,12 @@ def install_picard(args):
         subprocess.check_call(sudo_cmd + cmd)
 
 def install_samtools():
-    pass
+    '''
+    SAM tools provide various utilities for manipulating alignments in the SAM format.
+    http://samtools.sourceforge.net/
+    '''
+    url_samtools_brew = 'https://raw.github.com/Homebrew/homebrew-science/master/samtools.rb'
+    subprocess.call('brew install %s' % url_samtools_brew, shell=True)
 
 def install_gatk():
     pass
