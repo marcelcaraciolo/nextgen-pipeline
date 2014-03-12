@@ -70,7 +70,7 @@ def install_data_tools(sys_argv, args, nextgen):
 
     install_samtools()
 
-    install_gatk()
+    install_gatk(args)
 
     print('Installing nextgen data files')
     install_nextgen_data(args, remotes)
@@ -114,8 +114,29 @@ def install_samtools():
     url_samtools_brew = 'https://raw.github.com/Homebrew/homebrew-science/master/samtools.rb'
     subprocess.call('brew install %s' % url_samtools_brew, shell=True)
 
-def install_gatk():
-    pass
+def install_gatk(args):
+    '''Installation script for recent versions of GATK. Requires manual download from user.
+    http://www.broadinstitute.org/gatk/
+    '''
+    name = 'GenomeAnalysisTK-%s.tar.bz2'
+    version = '3.0-0'
+    if not os.path.exists(os.path.join(args.tooldir, 'GenomeAnalysisTK.jar')):
+        print '**** Manual intervention needed'
+        print 'Recent GATK versions require manual download from the GATK website'
+        print 'Retrieve the latest versions from:'
+        print 'http://www.broadinstitute.org/gatk/download'
+        print 'and place %s in your tooldir directory: %s'  % (name % version, args.tooldir)
+
+        userin = raw_input('*** Press <enter> when complete or type "skip" to avoid installation: ')
+        if userin.find('skip') >= 0:
+            return
+        cmd = ['tar', '-xzvf', name % version]
+        subprocess.check_call(cmd)
+
+        sudo_cmd = ["sudo"]
+        cmd = ['rm', '-f', name % version]
+        subprocess.check_call(sudo_cmd + cmd)
+
 
 def install_nextgen_data(args, REMOTES):
     pass
