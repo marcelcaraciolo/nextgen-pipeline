@@ -138,8 +138,20 @@ def install_gatk(args):
         subprocess.check_call(sudo_cmd + cmd)
 
 
+def download_dbsnp(args):
+    '''Download and install dbSNP variation data for supplied genomes.'''
+    base_url = 'ftp://gsapubftp-anonymous:@ftp.broadinstitute.org/bundle/2.8/hg19/' + \
+                    'ucsc.hg19.fasta.gz'
+
+    if not os.path.exists(os.path.join(args.datadir, 'ucsc.hg19.fasta')):
+        subprocess.check_call(['wget', base_url])
+        cmd = ['gunzip', 'ucsc.hg19.fasta.gz']
+        subprocess.check_call(cmd)
+        subprocess.check_call(["mv", 'ucsc.hg19.fasta', args.datadir])
+
 def install_nextgen_data(args, REMOTES):
-    pass
+    download_dbsnp(args)
+
 
 def write_system_config(base_url, datadir, tooldir):
     """
