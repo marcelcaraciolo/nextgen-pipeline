@@ -34,6 +34,7 @@ def main(args, sys_argv):
     with nextgen_tmpdir():
         setup_data_dir(args)
         print("Installing isolated base python installation")
+        install_brew()
         anaconda = install_anaconda_python(args, remotes)
         print("Installing nextgen-pipeline")
         install_conda_packages(anaconda)
@@ -62,7 +63,6 @@ def install_data_tools(sys_argv, args, nextgen):
 
     print('Installing nextgen tools')
     #install homebrew, BWA, Picard, SamTools, GATK
-    install_brew()
 
     install_bwa()
 
@@ -84,6 +84,9 @@ def install_brew():
     except OSError:
         print('Brew not installed. Installing brew...')
         subprocess.check_call('ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go/install)"')
+
+    #install wget basic tool for downloading
+    subprocess.call('brew install wget', shell=True)
 
 def install_bwa():
     '''BWA: aligns short nucleotide sequences against a long reference sequence.
@@ -179,7 +182,6 @@ def download_dbsnp(args):
 
     base_url = 'ftp://gsapubftp-anonymous:@ftp.broadinstitute.org/bundle/2.8/hg19/' + \
                     'dbsnp_138.hg19.vcf.idx.gz'
-
     if not os.path.exists(os.path.join(args.datadir, 'dbsnp_138.hg19.vcf.idx')):
         subprocess.check_call(['wget', base_url])
         cmd = ['gunzip', 'dbsnp_138.hg19.vcf.idx.gz']
