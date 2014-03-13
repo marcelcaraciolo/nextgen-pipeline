@@ -149,6 +149,44 @@ def download_dbsnp(args):
         subprocess.check_call(cmd)
         subprocess.check_call(["mv", 'ucsc.hg19.fasta', args.datadir])
 
+    base_url = 'ftp://gsapubftp-anonymous:@ftp.broadinstitute.org/bundle/2.8/hg19/' + \
+                    'ucsc.hg19.dict.gz'
+
+    if not os.path.exists(os.path.join(args.datadir, 'ucsc.hg19.dict')):
+        subprocess.check_call(['wget', base_url])
+        cmd = ['gunzip', 'ucsc.hg19.dict.gz']
+        subprocess.check_call(cmd)
+        subprocess.call(["mv", 'ucsc.hg19.dict', args.datadir])
+
+    base_url = 'ftp://gsapubftp-anonymous:@ftp.broadinstitute.org/bundle/2.8/hg19/' + \
+                    'ucsc.hg19.fasta.fai.gz'
+
+    if not os.path.exists(os.path.join(args.datadir, 'ucsc.hg19.fasta.fai')):
+        subprocess.check_call(['wget', base_url])
+        cmd = ['gunzip', 'ucsc.hg19.fasta.fai.gz']
+        subprocess.check_call(cmd)
+        subprocess.call(["mv", 'ucsc.hg19.fasta.fai', args.datadir])
+
+
+    base_url = 'ftp://gsapubftp-anonymous:@ftp.broadinstitute.org/bundle/2.8/hg19/' + \
+                    'dbsnp_138.hg19.vcf.gz'
+
+    if not os.path.exists(os.path.join(args.datadir, 'dbsnp_138.hg19.vcf')):
+        subprocess.check_call(['wget', base_url])
+        cmd = ['gunzip', 'dbsnp_138.hg19.vcf.gz']
+        subprocess.check_call(cmd)
+        subprocess.call(["mv", 'dbsnp_138_hg19.vcf', args.datadir])
+
+    base_url = 'ftp://gsapubftp-anonymous:@ftp.broadinstitute.org/bundle/2.8/hg19/' + \
+                    'dbsnp_138.hg19.vcf.idx.gz'
+
+    if not os.path.exists(os.path.join(args.datadir, 'dbsnp_138.hg19.vcf.idx')):
+        subprocess.check_call(['wget', base_url])
+        cmd = ['gunzip', 'dbsnp_138.hg19.vcf.idx.gz']
+        subprocess.check_call(cmd)
+        subprocess.call(["mv", 'dbsnp_138_hg19.vcf.idx', args.datadir])
+
+
 def install_nextgen_data(args, REMOTES):
     download_dbsnp(args)
 
