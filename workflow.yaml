@@ -1,4 +1,3 @@
----
 #File for specifying run informtion to pipeline.py
 #Stages should hold the details of each stage which can be called
 #by the pipeline. Each stage must contain a command definition.
@@ -8,29 +7,29 @@ stages:
     description: 'Run from Illumina'
     genome_build: 'ucsc.hg19'
     algorithm:
-        aligner: bwa
-            command:'bwa aln -f %out -t %threads %encodingflag %ref %seq'
-        indexer: bwa
-            command:'bwa index -a %algorithm -p %prefix %seq'
-        samse: bwa
-            command:'bwa samse -f %out -r %meta %ref %align %seq'
-        sampe: bwa
-            command:'bwa sampe -f %out -r %meta %ref %align1 %align2 %seq1 %seq2'
-        sam2bam: picard
-            command:'java %jvmoptions -jar %picarddir/SortSam.jar SO=coordinate INPUT=%seq OUTPUT=%out VALIDATION_STRIGENCY=LENIENT CREATE_INDEX=true'
-        markduplicates: picard
-            command:'java %jvmoptions -jar %picarddir/MarkDuplicates.jar INPUT=%bam OUTPUT=%out METRICS_FILE=%log CREATE_INDEX=true VALIDATION_STRINGENCY=LENIENT'
-        realigner: gatk
-            command:'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -T RealignerTargetCreator -R %ref -o %out -I %seq'
-        indelrealigner: gatk
-            command:'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -I %seq -R %ref -T IndelRealigner -targetIntervals %bamlist -o %out'
-        bamindexer: samtools
-            command:'%samdir/samtools index %bam'
-        countcovariates: gatk
-            command:'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -nt %threads -l INFO -T CountCovariates -I %bam -R %ref --knownSites %dbsnp -cov QualityScoreCovariate -cov CycleCovariate -cov DinucCovariate -cov ReadGroupCovariate -recalFile %out'
-        recaltabulate: gatk
-            command:'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -nt %threads -T TableRecalibration -I %bam -R %ref -recalFile -l INFO %csvFile -o %out'
-        callSNPs: gatk
-            command:'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -nt %threads -R %ref -I %bam --dbsnp %dbsnp -T HaplotypeCaller -stand_emit_conf %sec  -stand_call_conf %scf -dcov %dcov -glm SNP --genotyping_mode DISCOVERY --max_alternate_alleles %alleles -o %out'
-        filterSNPs: gatk
-            command:"java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -nt %threads -T VariantFiltration -R %ref --variant %vcf --filterExpression '%expression' --output_mode EMIT_ALL_SITES -o %out"
+        aligner:
+            command: 'bwa aln -f %(out)s -t %(threads)d %(encodingflag)s %(ref)s %(seq)s'
+        indexer:
+            command: 'bwa index -a %(algorithm)s -p %(prefix)s %(seq)s'
+        samse:
+            command: 'bwa samse -f %out -r %meta %ref %align %seq'
+        sampe:
+            command: 'bwa sampe -f %out -r %meta %ref %align1 %align2 %seq1 %seq2'
+        sam2bam:
+            command: 'java %jvmoptions -jar %picarddir/SortSam.jar SO=coordinate INPUT=%seq OUTPUT=%out VALIDATION_STRIGENCY=LENIENT CREATE_INDEX=true'
+        markduplicates:
+            command: 'java %jvmoptions -jar %picarddir/MarkDuplicates.jar INPUT=%bam OUTPUT=%out METRICS_FILE=%log CREATE_INDEX=true VALIDATION_STRINGENCY=LENIENT'
+        realigner:
+            command: 'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -T RealignerTargetCreator -R %ref -o %out -I %seq'
+        indelrealigner:
+            command: 'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -I %seq -R %ref -T IndelRealigner -targetIntervals %bamlist -o %out'
+        bamindexer:
+            command: '%samdir/samtools index %bam'
+        countcovariates:
+            command: 'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -nt %threads -l INFO -T CountCovariates -I %bam -R %ref --knownSites %dbsnp -cov QualityScoreCovariate -cov CycleCovariate -cov DinucCovariate -cov ReadGroupCovariate -recalFile %out'
+        recaltabulate:
+            command: 'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -nt %threads -T TableRecalibration -I %bam -R %ref -recalFile -l INFO %csvFile -o %out'
+        callSNPs:
+            command: 'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -nt %threads -R %ref -I %bam --dbsnp %dbsnp -T HaplotypeCaller -stand_emit_conf %sec  -stand_call_conf %scf -dcov %dcov -glm SNP --genotyping_mode DISCOVERY --max_alternate_alleles %alleles -o %out'
+        filterSNPs:
+            command: "java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -nt %threads -T VariantFiltration -R %ref --variant %vcf --filterExpression '%expression' --output_mode EMIT_ALL_SITES -o %out"

@@ -11,22 +11,38 @@ The pipeline is configured by an options file in a python file
 including the actual command which are run at each stage.
 
 '''
-
+from commands import make_reference_database, index_reference, align
 import sys
 import os
 import argparse
 from yaml import load
 import glob
 
-
-def run(global_config, fc_dir, work_dir, workflow_config):
-    #1. Get all fasta files and check if there is at least one to process.
+def check_fasta_files(fc_dir):
     fasta_files = glob.glob('%s/*.fasta' % fc_dir)
     if len(fasta_files) <= 1:
         if len(fasta_files) == 0:
             exit('At least one sequence file must be specified')
         if 'hg19' in fasta_files[0]:
             exit('At least one sequence file must be specified')
+
+    return fasta_files
+
+def run(global_config, fc_dir, work_dir, workflow_config, reference):
+    #1. Get all fasta files and check if there is at least one to process.
+    #sequence_files = check_fasta_files(fc_dir)
+    sequence_files = glob.glob('%s/*.fasta' % fc_dir)
+
+    #2. Create reference database
+    make_reference_database(workflow_config['indexer']['command'],'bwtsw', reference)
+
+    #3.Index the reference
+    index_reference(reference)
+
+    for seq in sequence_files:
+        seq_align = align(workflow_config['aligner']['command'], global_config['bwa']['threads'],
+                    reference, seq, work_dir)
+
 
 def parse_cl_args():
     '''Parse input commandline arguments, handling multiple cases.
@@ -42,9 +58,11 @@ def parse_cl_args():
     parser.add_argument('fc_dir', help='A directory of fastq files to process (optional)',
                 nargs = "?")
     parser.add_argument('workflow', help='YAML file with details about the pipeline workflow', nargs='?')
-
+    parser.add_argument('--reference', help="Human genome Reference to use as base.",
+                    default = 'hg19')
     parser.add_argument('--workdir', help="Directory to process in. Defaults to current working directory",
                     default = os.getcwd())
+
 
     return parser
 
@@ -85,7 +103,7 @@ def main(args, sys_args, parser):
             workflowConfig = load(contents)
 
 
-    run(newConfig, fc_dir, work_dir, workflowConfig)
+    run(newConfig['resources'], fc_dir, work_dir, workflowConfig['stages']['algorithm'], args.reference)
 
 if __name__ == '__main__':
     parser = parse_cl_args()

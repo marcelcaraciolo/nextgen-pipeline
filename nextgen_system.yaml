@@ -13,7 +13,7 @@ resources:
         cores: 16
         align: aln
         index: bwtsw
-        threads: 1
+        threads: 4
     samtools:
         memory: 2G
         cores: 16
