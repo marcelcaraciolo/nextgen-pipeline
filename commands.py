@@ -7,6 +7,10 @@ import os.path as path
 from utils import runCommand, splitPath
 
 
+def make_metadata_string(metadata):
+    return r'-r"@RG\tID:%s\tLB:%s\tSM:%s\tPL:%s"' % (metadata['ID'], metadata['LB'], metadata['SM'],
+                    metadata['PL'])
+
 def make_reference_database(command, algorithm, reference):
     '''
     Create reference database
@@ -27,7 +31,6 @@ def index_reference(reference):
     else:
        sys.exit('check if the bwa index ran successfully')
 
-
 def align(command, threads, reference, sequence, output_dir):
     '''
     Align sequence reads to the reference genome. This is the bwa's first stage, bwa aln.
@@ -43,3 +46,17 @@ def align(command, threads, reference, sequence, output_dir):
 
     return alignment_file
 
+def align2Sam(command, reference, alignment, sequence, output_dir):
+    """
+    Convert alignments to SAM format. Turn bwa sai alignments into a sam file
+    """
+    (path, name, ext) = splitPath(alignment)
+    if ext != '.sai':
+        sys.exit('align2Sam: alignment file %s does not have .sai extension' % alignment)
+    sam_file = path.join(output_dir, name + '.sam')
+    readgroup_metadata = {'PL': 'ILLUMINA', 'SM': name, 'LB': name, 'ID': name}
+    metadata_str = make_metadata_string(readgroup_metadata)
+    command =  command % {'out': sam_file, 'ref': reference, 'seq': sequence, 'meta': metadata_str}
+    runCommand('Align to Sam', command)
+
+    return sam_file
