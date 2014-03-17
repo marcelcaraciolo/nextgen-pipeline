@@ -11,9 +11,16 @@ resources:
     bwa:
         cmd: bwa
         cores: 16
+        align: aln
+        index: bwtsw
+        threads: 1
     samtools:
         memory: 2G
         cores: 16
+        maxreadDepth: 1000000
+    logging:
+        level: info
+        file: pipe.log
     gatk:
         jvm_opts: ["-Xms750m", '-Xmx2500m']
         dir: /usr/local/share/java/gatk
