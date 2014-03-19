@@ -12,6 +12,7 @@ including the actual command which are run at each stage.
 
 '''
 from commands import make_reference_database, index_reference, align
+from commands import align2sam
 import sys
 import os
 import argparse
@@ -19,7 +20,7 @@ from yaml import load
 import glob
 
 def check_fasta_files(fc_dir):
-    fasta_files = glob.glob('%s/*.fasta' % fc_dir)
+    fasta_files = glob.glob('%s/*.fastq' % fc_dir)
     if len(fasta_files) <= 1:
         if len(fasta_files) == 0:
             exit('At least one sequence file must be specified')
@@ -30,8 +31,7 @@ def check_fasta_files(fc_dir):
 
 def run(global_config, fc_dir, work_dir, workflow_config, reference):
     #1. Get all fasta files and check if there is at least one to process.
-    #sequence_files = check_fasta_files(fc_dir)
-    sequence_files = glob.glob('%s/*.fasta' % fc_dir)
+    sequence_files = check_fasta_files(fc_dir)
 
     #2. Create reference database
     make_reference_database(workflow_config['indexer']['command'],'bwtsw', reference)
@@ -40,8 +40,11 @@ def run(global_config, fc_dir, work_dir, workflow_config, reference):
     index_reference(reference)
 
     for seq in sequence_files:
+        #4.Align sequence to the reference database.
         seq_align = align(workflow_config['aligner']['command'], global_config['bwa']['threads'],
                     reference, seq, work_dir)
+        #5. Convert alignment to SAM format.
+        seq_sam = align2sam(workflow_config['samse']['command'], reference, seq_align, seq, work_dir)
 
 
 def parse_cl_args():

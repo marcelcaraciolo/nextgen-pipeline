@@ -12,9 +12,9 @@ stages:
         indexer:
             command: 'bwa index -a %(algorithm)s -p %(prefix)s %(seq)s'
         samse:
-            command: 'bwa samse -f %out -r %meta %ref %align %seq'
+            command: 'bwa samse -f %(out)s %(meta)s %(ref)s %(align)s %(seq)s'
         sampe:
-            command: 'bwa sampe -f %out -r %meta %ref %align1 %align2 %seq1 %seq2'
+            command: 'bwa sampe -f %(out)s %(meta)s %(ref)s %(align1)s %(align2)s %(seq1)s %(seq2)s'
         sam2bam:
             command: 'java %jvmoptions -jar %picarddir/SortSam.jar SO=coordinate INPUT=%seq OUTPUT=%out VALIDATION_STRIGENCY=LENIENT CREATE_INDEX=true'
         markduplicates:
