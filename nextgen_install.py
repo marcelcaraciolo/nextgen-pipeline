@@ -62,7 +62,7 @@ def install_data_tools(sys_argv, args, nextgen):
                 args.datadir == os.path.abspath(os.path.expanduser(x))]
 
     print('Installing nextgen tools')
-    #install homebrew, BWA, Picard, SamTools, GATK
+    #install homebrew, BWA, Picard, SamTools, GATK and Annovar
 
     install_bwa()
 
@@ -71,6 +71,8 @@ def install_data_tools(sys_argv, args, nextgen):
     install_samtools()
 
     install_gatk(args)
+
+    install_annovar(args)
 
     print('Installing nextgen data files')
     install_nextgen_data(args, remotes)
@@ -140,6 +142,26 @@ def install_gatk(args):
         cmd = ['rm', '-f', name % version]
         subprocess.check_call(sudo_cmd + cmd)
 
+def install_annovar(args):
+    '''Installation script for recent versions of Annovar. Requires manual download from user.
+       http://www.openbioinformatics.org/annovar
+    '''
+    name = 'annovar.latest.tar.gz'
+    if not os.path.exists(os.path.join(args.tooldir, 'annovar')):
+        print '**** Manual intervention needed'
+        print 'Recent Annovar versions require manual download from the Annovar website'
+        print 'Retrieve the latest versions from:'
+        print 'http://www.openbioinformatics.org/annovar'
+        print 'and place %s in your tooldir directory: %s'  % (name, args.tooldir)
+        userin = raw_input('*** Press <enter> when complete or type "skip" to avoid installation: ')
+        if userin.find('skip') >= 0:
+            return
+        cmd = ['tar', '-xzvf', name]
+        subprocess.check_call(cmd)
+
+        sudo_cmd = ["sudo"]
+        cmd = ['rm', '-f', name]
+        subprocess.check_call(sudo_cmd + cmd)
 
 def download_dbsnp(args):
     '''Download and install dbSNP variation data for supplied genomes.'''
