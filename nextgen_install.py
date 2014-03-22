@@ -210,10 +210,20 @@ def download_dbsnp(args):
         subprocess.check_call(cmd)
         subprocess.call(["mv", 'dbsnp_138_hg19.vcf.idx', args.datadir])
 
+def download_annovar_dbs(args):
+    '''Download annovar databases for variation analysis'''
+    #check if script perl is available in tooldir
+    cmd = '%s --buildver %s --downdb %s %s'
+    if os.path.exists(os.path.join(args.tooldir, 'annovar/annotate_variation.pl')):
+        annotation = os.path.join(args.tooldir, 'annovar/annotate_variation.pl')
+        cmd = cmd % (annotation, 'hg19', 'refGene',  os.path.join(args.tooldir, 'annovar/humandb'))
+        print cmd
+        subprocess.check_call(cmd, shell=True)
+
 
 def install_nextgen_data(args, REMOTES):
     download_dbsnp(args)
-
+    download_annovar_dbs(args)
 
 def write_system_config(base_url, datadir, tooldir):
     """
