@@ -221,13 +221,9 @@ def download_annovar_dbs(args):
             db = yaml.load(annovar_db)
             for reference, dbs in db.iteritems():
                 for db in dbs:
-                    #if not os.path.exists(os.path.join(args.tooldir, 'annovar/humandb/hg19_refGene.txt')):
-                    cmd_refgene = cmd % (annotation, reference , db,  os.path.join(args.tooldir, 'annovar/humandb'))
-                    subprocess.check_call(cmd_refgene, shell=True)
-
-        #if not os.path.exists(os.path.join(args.tooldir, 'annovar/humandb/hg19_refGene.txt')):
-        #cmd_snp137 = cmd % (annotation, 'hg19', 'snp137',  os.path.join(args.tooldir, 'annovar/humandb'))
-        #subprocess.check_call(cmd_snp137, shell=True'
+                    if not os.path.exists(os.path.join(args.tooldir, 'annovar/humandb/%s_%s.txt' % (reference, db))):
+                        cmd_execute = cmd % (annotation, reference , db,  os.path.join(args.tooldir, 'annovar/humandb'))
+                        subprocess.check_call(cmd_execute, shell=True)
 
 def install_nextgen_data(args, REMOTES):
     download_dbsnp(args)
