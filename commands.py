@@ -58,7 +58,14 @@ def align2sam(command, reference, alignment, sequence, output_dir):
     metadata_str = make_metadata_string(readgroup_metadata)
     command =  command % {'out': sam_file, 'ref': reference, 'align': alignment,
                                       'seq': sequence, 'meta': metadata_str}
-    print command
     runCommand('Align to Sam', command)
 
     return sam_file
+
+def dedup(command, alignment, output_dir):
+    """
+    Remove apparent duplicates using Picard MarkDuplicates
+    """
+    pass
+
+
