@@ -21,6 +21,7 @@ import shutil
 import platform
 import datetime
 import zipfile
+import yaml
 
 remotes = {"anaconda": "http://repo.continuum.io/miniconda/Miniconda-3.0.0-%s-x86_64.sh",
             'system_config':  'nextgen_system.yaml',
@@ -216,10 +217,17 @@ def download_annovar_dbs(args):
     cmd = '%s --buildver %s --downdb %s %s'
     if os.path.exists(os.path.join(args.tooldir, 'annovar/annotate_variation.pl')):
         annotation = os.path.join(args.tooldir, 'annovar/annotate_variation.pl')
-        cmd = cmd % (annotation, 'hg19', 'refGene',  os.path.join(args.tooldir, 'annovar/humandb'))
-        print cmd
-        subprocess.check_call(cmd, shell=True)
+        with open('annovar_databases.yaml') as annovar_db:
+            db = yaml.load(annovar_db)
+            for reference, dbs in db.iteritems():
+                for db in dbs:
+                    #if not os.path.exists(os.path.join(args.tooldir, 'annovar/humandb/hg19_refGene.txt')):
+                    cmd_refgene = cmd % (annotation, reference , db,  os.path.join(args.tooldir, 'annovar/humandb'))
+                    subprocess.check_call(cmd_refgene, shell=True)
 
+        #if not os.path.exists(os.path.join(args.tooldir, 'annovar/humandb/hg19_refGene.txt')):
+        #cmd_snp137 = cmd % (annotation, 'hg19', 'snp137',  os.path.join(args.tooldir, 'annovar/humandb'))
+        #subprocess.check_call(cmd_snp137, shell=True'
 
 def install_nextgen_data(args, REMOTES):
     download_dbsnp(args)
