@@ -12,7 +12,7 @@ including the actual command which are run at each stage.
 
 '''
 from commands import make_reference_database, index_reference, align
-from commands import align2sam
+from commands import align2sam, sam2bam
 import sys
 import os
 import argparse
@@ -29,7 +29,7 @@ def check_fasta_files(fc_dir):
 
     return fasta_files
 
-def run(global_config, fc_dir, work_dir, workflow_config, reference):
+def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference):
     #1. Get all fasta files and check if there is at least one to process.
     sequence_files = check_fasta_files(fc_dir)
 
@@ -41,11 +41,15 @@ def run(global_config, fc_dir, work_dir, workflow_config, reference):
 
     for seq in sequence_files:
         #4.Align sequence to the reference database.
-        seq_align = align(workflow_config['aligner']['command'], global_config['bwa']['threads'],
-                    reference, seq, work_dir)
+        #seq_align = align(workflow_config['aligner']['command'], global_config['bwa']['threads'],
+        #            reference, seq, work_dir)
         #5. Convert alignment to SAM format.
-        seq_sam = align2sam(workflow_config['samse']['command'], reference, seq_align, seq, work_dir)
-
+        #seq_sam = align2sam(workflow_config['samse']['command'], reference, seq_align, seq, work_dir)
+        #6. Convert SAM to BAM
+        seq_sam = glob.glob('*.sam')[0]
+        #@TODO: make picard-tools directory without version to normalize for any releases.
+        seq_bam = sam2bam(workflow_config['sam2bam']['command'], global_config['picard']['jvm_opts'],
+                    os.path.join(tools_dir, 'picard-tools-1.109'), seq_sam, work_dir)
 
 def parse_cl_args():
     '''Parse input commandline arguments, handling multiple cases.
@@ -65,8 +69,8 @@ def parse_cl_args():
                     default = 'hg19')
     parser.add_argument('--workdir', help="Directory to process in. Defaults to current working directory",
                     default = os.getcwd())
-
-
+    parser.add_argument('--tooldir', help="Directory where the tools are in. Defaults to current working directory",
+                    default = os.getcwd())
     return parser
 
 def make_output_dir(dir):
@@ -105,8 +109,10 @@ def main(args, sys_args, parser):
             contents = f.read()
             workflowConfig = load(contents)
 
+    #check where tools dir is.
+    tools_dir = os.path.abspath(args.tooldir)
 
-    run(newConfig['resources'], fc_dir, work_dir, workflowConfig['stages']['algorithm'], args.reference)
+    run(newConfig['resources'], fc_dir, work_dir, tools_dir, workflowConfig['stages']['algorithm'], args.reference)
 
 if __name__ == '__main__':
     parser = parse_cl_args()

@@ -16,7 +16,7 @@ stages:
         sampe:
             command: 'bwa sampe -f %(out)s %(meta)s %(ref)s %(align1)s %(align2)s %(seq1)s %(seq2)s'
         sam2bam:
-            command: 'java %jvmoptions -jar %picarddir/SortSam.jar SO=coordinate INPUT=%seq OUTPUT=%out VALIDATION_STRIGENCY=LENIENT CREATE_INDEX=true'
+            command: 'java %(jvmoptions)s -jar %(picarddir)s/SortSam.jar SO=coordinate INPUT=%(sam)s OUTPUT=%(out)s VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true'
         markduplicates:
             command: 'java %jvmoptions -jar %picarddir/MarkDuplicates.jar INPUT=%bam OUTPUT=%out METRICS_FILE=%log CREATE_INDEX=true VALIDATION_STRINGENCY=LENIENT'
         realigner:

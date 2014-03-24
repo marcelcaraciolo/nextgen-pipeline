@@ -62,6 +62,21 @@ def align2sam(command, reference, alignment, sequence, output_dir):
 
     return sam_file
 
+def sam2bam(command, command_options, piccard_dir, alignment, output_dir):
+    """
+    Convert sam to bam and sort, using Picard.
+    """
+    (path, name, ext) = splitPath(alignment)
+    command_options = command_options[1]
+    if ext != '.sam':
+        sys.exit('sam2bam: alignment file %s does not have .sam extension' % alignment)
+    bam_file = os.path.join(output_dir, name + '.bam')
+    command = command % {'out': bam_file, 'sam': alignment, 'jvmoptions': command_options,
+            'picarddir': piccard_dir}
+    runCommand('Sam to Sorted Bam', command)
+
+    return bam_file
+
 def dedup(command, alignment, output_dir):
     """
     Remove apparent duplicates using Picard MarkDuplicates
