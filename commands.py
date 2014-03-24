@@ -77,10 +77,20 @@ def sam2bam(command, command_options, piccard_dir, alignment, output_dir):
 
     return bam_file
 
-def dedup(command, alignment, output_dir):
+def dedup(command, command_options, piccard_dir, alignment, output_dir):
     """
     Remove apparent duplicates using Picard MarkDuplicates
     """
-    pass
+    (path, name, ext) = splitPath(alignment)
+    command_options = command_options[1]
+    if ext != '.bam':
+        sys.exit('mark pcr duplicates: alignment file %s does not have .bam extension' % alignment)
+    marked_bam_file = os.path.join(output_dir, name + 'marked.bam')
+    command = command % {'out': marked_bam_file, 'bam': alignment, 'jvmoptions': command_options, \
+        'picarddir': piccard_dir, 'log': 'metrics'}
+    runCommand('Marking PCR duplicates', command)
+
+    return marked_bam_file
+
 
 

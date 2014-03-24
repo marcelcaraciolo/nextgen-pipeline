@@ -12,7 +12,7 @@ including the actual command which are run at each stage.
 
 '''
 from commands import make_reference_database, index_reference, align
-from commands import align2sam, sam2bam
+from commands import align2sam, sam2bam, dedup
 import sys
 import os
 import argparse
@@ -41,15 +41,17 @@ def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference):
 
     for seq in sequence_files:
         #4.Align sequence to the reference database.
-        #seq_align = align(workflow_config['aligner']['command'], global_config['bwa']['threads'],
-        #            reference, seq, work_dir)
+        seq_align = align(workflow_config['aligner']['command'], global_config['bwa']['threads'],
+                    reference, seq, work_dir)
         #5. Convert alignment to SAM format.
-        #seq_sam = align2sam(workflow_config['samse']['command'], reference, seq_align, seq, work_dir)
+        seq_sam = align2sam(workflow_config['samse']['command'], reference, seq_align, seq, work_dir)
         #6. Convert SAM to BAM
-        seq_sam = glob.glob('*.sam')[0]
         #@TODO: make picard-tools directory without version to normalize for any releases.
         seq_bam = sam2bam(workflow_config['sam2bam']['command'], global_config['picard']['jvm_opts'],
                     os.path.join(tools_dir, 'picard-tools-1.109'), seq_sam, work_dir)
+        #7. Mark PCR Duplicates
+        marked_seq_bam = dedup(workflow_config['markduplicates']['command'], global_config['picard']['jvm_opts'],
+                    os.path.join(tools_dir, 'picard-tools-1.109'), seq_bam, work_dir)
 
 def parse_cl_args():
     '''Parse input commandline arguments, handling multiple cases.

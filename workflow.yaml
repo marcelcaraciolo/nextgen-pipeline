@@ -18,7 +18,7 @@ stages:
         sam2bam:
             command: 'java %(jvmoptions)s -jar %(picarddir)s/SortSam.jar SO=coordinate INPUT=%(sam)s OUTPUT=%(out)s VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true'
         markduplicates:
-            command: 'java %jvmoptions -jar %picarddir/MarkDuplicates.jar INPUT=%bam OUTPUT=%out METRICS_FILE=%log CREATE_INDEX=true VALIDATION_STRINGENCY=LENIENT'
+            command: 'java %(jvmoptions)s -jar %(picarddir)s/MarkDuplicates.jar INPUT=%(bam)s OUTPUT=%(out)s METRICS_FILE=%(log)s CREATE_INDEX=true VALIDATION_STRINGENCY=LENIENT'
         realigner:
             command: 'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -T RealignerTargetCreator -R %ref -o %out -I %seq'
         indelrealigner:
