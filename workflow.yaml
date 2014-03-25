@@ -20,9 +20,11 @@ stages:
         markduplicates:
             command: 'java %(jvmoptions)s -jar %(picarddir)s/MarkDuplicates.jar INPUT=%(bam)s OUTPUT=%(out)s METRICS_FILE=%(log)s CREATE_INDEX=true VALIDATION_STRINGENCY=LENIENT'
         realigner:
-            command: 'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -T RealignerTargetCreator -R %ref -o %out -I %seq'
+            command: 'java %(jvmoptions)s -jar %(gatkdir)s/GenomeAnalysisTK.jar -T RealignerTargetCreator -R %(ref)s -o %(out)s -I %(bam)s'
         indelrealigner:
-            command: 'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -I %seq -R %ref -T IndelRealigner -targetIntervals %bamlist -o %out'
+            command: 'java %(jvmoptions)s -jar %(gatkdir)s/GenomeAnalysisTK.jar -I %(bam)s -R %(ref)s -T IndelRealigner -targetIntervals %(intervals)s -o %(out)s'
+        fixmates:
+            command: 'java %(jvmoptions)s -jar %(picarddir)s/FixMateInformation.jar INPUT=%(bam)s OUTPUT=%(out)s SO=coordinate CREATE_INDEX=true VALIDATION_STRINGENCY=LENIENT'
         bamindexer:
             command: '%samdir/samtools index %bam'
         countcovariates:

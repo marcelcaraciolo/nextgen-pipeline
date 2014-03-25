@@ -85,12 +85,55 @@ def dedup(command, command_options, piccard_dir, alignment, output_dir):
     command_options = command_options[1]
     if ext != '.bam':
         sys.exit('mark pcr duplicates: alignment file %s does not have .bam extension' % alignment)
-    marked_bam_file = os.path.join(output_dir, name + 'marked.bam')
+    marked_bam_file = os.path.join(output_dir, name + '.marked.bam')
     command = command % {'out': marked_bam_file, 'bam': alignment, 'jvmoptions': command_options, \
         'picarddir': piccard_dir, 'log': 'metrics'}
     runCommand('Marking PCR duplicates', command)
 
     return marked_bam_file
 
+def realign_intervals(command, command_options, gatk_dir, reference, alignment, output_dir):
+    """
+    Run GATK RealignTargetCreator to find suspect intervals for realignment.
+    """
+    (path, name, ext) = splitPath(alignment)
+    command_options = command_options[1]
+    if not alignment.endswith('marked.bam'):
+        sys.exit('calculating realignment intervals: alignment file %s does not have .bam extension' % alignment)
+    interval_file = os.path.join(output_dir, name + '.bam.list')
+    command = command % {'out': interval_file, 'bam': alignment, 'jvmoptions': command_options, \
+        'gatkdir': gatk_dir, 'ref': reference + '.fasta'}
+    runCommand('Calculating realignment intervals', command)
 
+    return interval_file
+
+def realign(command, command_options, gatk_dir, reference, alignment, intervals, output_dir):
+    '''
+    Run GATK IndelRealigner for local realignment, using intervals found by realign_intervals
+    '''
+    (path, name, ext) =  splitPath(alignment)
+    command_options = command_options[1]
+    if not intervals.endswith('bam.list') or ext != '.bam':
+        sys.exit('local realignment with intervals: intervals file %s does not have .list extension' % alignment)
+    realigned_bam = os.path.join(output_dir, name + '.realigned.bam')
+    command = command % {'jvmoptions': command_options, 'ref': reference + '.fasta', 'out': realigned_bam,
+                            'bam': alignment, 'gatkdir': gatk_dir, 'intervals': intervals}
+    runCommand('Running local realignment around indels', command)
+
+    return realigned_bam
+
+def fix_mate(command, command_options, piccard_dir, alignment, output_dir):
+    '''
+    Fix mate information in paired end data using picard
+    '''
+    (path, name, ext) =  splitPath(alignment)
+    command_options = command_options[1]
+    if ext != '.bam':
+        sys.exit('mate information fix: alignment file %s does not have .bam extension' % alignment)
+    fixed_bam = os.path.join(output_dir, name + '.fixed.bam')
+    command = command % {'jvmoptions': command_options, 'out': fixed_bam,
+                            'bam': alignment, 'picarddir': piccard_dir}
+    runCommand('Fixing Mate information', command)
+
+    return fixed_bam
 

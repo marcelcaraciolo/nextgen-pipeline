@@ -12,7 +12,8 @@ including the actual command which are run at each stage.
 
 '''
 from commands import make_reference_database, index_reference, align
-from commands import align2sam, sam2bam, dedup
+from commands import align2sam, sam2bam, dedup, realign_intervals
+from commands import realign, fix_mate
 import sys
 import os
 import argparse
@@ -52,6 +53,15 @@ def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference):
         #7. Mark PCR Duplicates
         marked_seq_bam = dedup(workflow_config['markduplicates']['command'], global_config['picard']['jvm_opts'],
                     os.path.join(tools_dir, 'picard-tools-1.109'), seq_bam, work_dir)
+        #8. Find suspect intervals for realignment.
+        bam_list = realign_intervals(workflow_config['realigner']['command'], global_config['gatk']['jvm_opts'],
+                    tools_dir, reference, marked_seq_bam, work_dir)
+        #9. Run local realignment around indels.
+        realigned_bam = realign(workflow_config['indelrealigner']['command'], global_config['gatk']['jvm_opts'],
+                    tools_dir, reference, marked_seq_bam, bam_list, work_dir)
+        #10. Fix mate information
+        realigned_bam = fix_mate(workflow_config['fixmates']['command'], global_config['picard']['jvm_opts'],
+                    os.path.join(tools_dir, 'picard-tools-1.109'), realigned_bam, work_dir)
 
 def parse_cl_args():
     '''Parse input commandline arguments, handling multiple cases.
