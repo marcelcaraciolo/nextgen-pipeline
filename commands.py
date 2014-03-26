@@ -137,3 +137,33 @@ def fix_mate(command, command_options, piccard_dir, alignment, output_dir):
 
     return fixed_bam
 
+def base_qual_recal_count(command, command_options, gatk_dir, reference, dbsnp, alignment, output_dir):
+    '''
+    GATK CountCovariates, first step of base quality score recalibration.
+    '''
+    (path, name, ext) =  splitPath(alignment)
+    command_options = command_options[1]
+    if ext != '.bam':
+        sys.exit('count covariates: alignment file %s does not have .bam extension' % alignment)
+    recal_file = os.path.join(output_dir, name + '.recal_data.csv')
+    command = command % {'jvmoptions': command_options, 'out': recal_file, 'dbsnp': dbsnp,
+                            'bam': alignment, 'gatkdir': gatk_dir, 'ref': reference + '.fasta'}
+    runCommand('count covariates for base quality score', command)
+
+    return recal_file
+
+def base_qual_recal_tabulate(command, command_options, gatk_dir, reference, recal_file, alignment, output_dir):
+    '''
+    GATK TableRecalibration: recalibrate base quality scores using the output of CountCovariates.
+    '''
+    (path, name, ext) =  splitPath(alignment)
+    command_options = command_options[1]
+    if ext != '.bam':
+        sys.exit('table recalibration: alignment file %s does not have .bam extension' % alignment)
+    recal_bam = os.path.join(output_dir, name + '.recal.bam')
+    command = command % {'jvmoptions': command_options, 'out': recal_bam, 'recalfile': recal_file,
+                            'bam': alignment, 'gatkdir': gatk_dir, 'ref': reference + '.fasta'}
+    runCommand('recalibrate base quality scores', command)
+
+    return recal_bam
+

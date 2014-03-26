@@ -28,9 +28,9 @@ stages:
         bamindexer:
             command: '%samdir/samtools index %bam'
         countcovariates:
-            command: 'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -nt %threads -l INFO -T CountCovariates -I %bam -R %ref --knownSites %dbsnp -cov QualityScoreCovariate -cov CycleCovariate -cov DinucCovariate -cov ReadGroupCovariate -recalFile %out'
+            command: 'java %(jvmoptions)s -jar %(gatkdir)s/GenomeAnalysisTK.jar -l INFO -T BaseRecalibrator -I %(bam)s -R %(ref)s -knownSites %(dbsnp)s -cov QualityScoreCovariate -cov CycleCovariate -cov ContextCovariate -cov ReadGroupCovariate -o %(out)s'
         recaltabulate:
-            command: 'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -nt %threads -T TableRecalibration -I %bam -R %ref -recalFile -l INFO %csvFile -o %out'
+            command: 'java %(jvmoptions)s -jar %(gatkdir)s/GenomeAnalysisTK.jar -T PrintReads -I %(bam)s -R %(ref)s -BQSR %(recalfile)s -o %(out)s'
         callSNPs:
             command: 'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -nt %threads -R %ref -I %bam --dbsnp %dbsnp -T HaplotypeCaller -stand_emit_conf %sec  -stand_call_conf %scf -dcov %dcov -glm SNP --genotyping_mode DISCOVERY --max_alternate_alleles %alleles -o %out'
         filterSNPs:
