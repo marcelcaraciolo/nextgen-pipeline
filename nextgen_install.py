@@ -211,6 +211,24 @@ def download_dbsnp(args):
         subprocess.check_call(cmd)
         subprocess.call(["mv", 'dbsnp_138_hg19.vcf.idx', args.datadir])
 
+    base_url = 'ftp://gsapubftp-anonymous:@ftp.broadinstitute.org/bundle/2.5/hg19/' + \
+                    'dbsnp_137.hg19.vcf.gz'
+
+    if not os.path.exists(os.path.join(args.datadir, 'dbsnp_137.hg19.vcf')):
+        subprocess.check_call(['wget', base_url])
+        cmd = ['gunzip', 'dbsnp_137.hg19.vcf.gz']
+        subprocess.check_call(cmd)
+        subprocess.call(["mv", 'dbsnp_137_hg19.vcf', args.datadir])
+
+    base_url = 'ftp://gsapubftp-anonymous:@ftp.broadinstitute.org/bundle/2.5/hg19/' + \
+                    'dbsnp_137.hg19.vcf.idx.gz'
+    if not os.path.exists(os.path.join(args.datadir, 'dbsnp_137.hg19.vcf.idx')):
+        subprocess.check_call(['wget', base_url])
+        cmd = ['gunzip', 'dbsnp_137.hg19.vcf.idx.gz']
+        subprocess.check_call(cmd)
+        subprocess.call(["mv", 'dbsnp_137_hg19.vcf.idx', args.datadir])
+
+
 def download_annovar_dbs(args):
     '''Download annovar databases for variation analysis'''
     #check if script perl is available in tooldir
@@ -223,7 +241,8 @@ def download_annovar_dbs(args):
                 for db in dbs:
                     if not os.path.exists(os.path.join(args.tooldir, 'annovar/humandb/%s_%s.txt' % (reference, db))):
                         cmd_execute = cmd % (annotation, reference , db,  os.path.join(args.tooldir, 'annovar/humandb'))
-                        subprocess.check_call(cmd_execute, shell=True)
+                        if 'Failed' in  subprocess.check_output(cmd_execute, shell=True):
+                            print reference, db ,'--->', 'failed'
 
 def install_nextgen_data(args, REMOTES):
     download_dbsnp(args)
