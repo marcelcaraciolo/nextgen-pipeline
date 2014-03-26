@@ -24,6 +24,7 @@ resources:
     gatk:
         jvm_opts: ["-Xms750m", '-Xmx2500m']
         dir: /usr/local/share/java/gatk
+        threads: 4
 
     gatk_haplotype:
         jvm_opts: ['-Xms2g', '-Xmx5500m']
