@@ -173,7 +173,7 @@ def download_dbsnp(args):
         subprocess.check_call(['wget', base_url])
         cmd = ['gunzip', 'ucsc.hg19.fasta.gz']
         subprocess.check_call(cmd)
-        subprocess.check_call(["mv", 'ucsc.hg19.fasta', args.datadir])
+        subprocess.call(["mv", 'ucsc.hg19.fasta', args.datadir])
 
     base_url = 'ftp://gsapubftp-anonymous:@ftp.broadinstitute.org/bundle/2.8/hg19/' + \
                     'ucsc.hg19.dict.gz'
