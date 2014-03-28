@@ -199,3 +199,48 @@ def filter_snps(command, command_options, gatk_dir, reference, vcf, filter_expre
 
     return out_vcf
 
+def convert2annovar(command, annovar_dir, vcf, output_dir):
+    '''
+    Convert vcf file to Annovar variant caller .annovar
+    '''
+    (path, name, ext) =  splitPath(vcf)
+    if ext != '.vcf':
+        sys.exit('Converting to .annovar: vcf file %s does not have .vcf extension' % vcf)
+    out_prefix = os.path.join(output_dir, name.split('.')[0])
+    command = command % {'out': out_prefix, 'vcf': vcf, 'annovardir': annovar_dir}
+    runCommand('Coverting to .annovar format', command)
+
+    return '.'.join([out_prefix, name.split('.')[0],  'avinput'])
+
+def annotate(command, annovar_dir, annovar_file, output_dir):
+    '''
+    Annotate vcf using Annovar variant caller.
+    '''
+    (path, name, ext) =  splitPath(annovar_file)
+    if ext != '.avinput':
+        sys.exit('Annotating vcf: vcf file %s does not have .avinput extension' % annovar_file)
+    out_prefix = os.path.join(output_dir, name)
+    command = command % {'out': out_prefix, 'annovarfile': annovar_file, 'annovardir': annovar_dir}
+    runCommand('Annotating with Annovar', command)
+
+    return out_prefix
+
+def summarize(command, annovar_dir, annovar_file, ver1000g, veresp, verdbsnp, genetype, buildver, output_dir):
+    '''
+    Summarize information with Annovar.
+    '''
+    (path, name, ext) =  splitPath(annovar_file)
+    if ext != '.avinput':
+        sys.exit('Summarizing annotations: vcf file %s does not have .avinput extension' % annovar_file)
+    out_prefix = os.path.join(output_dir, name)
+    command = command % {'out': out_prefix, 'annovarfile': annovar_file, 'annovardir': annovar_dir,
+                'ver1000g': ver1000g, 'veresp': veresp, 'verdbsnp': verdbsnp, 'genetype': genetype, 'buildver': buildver}
+    runCommand('Summarizing with Annovar', command)
+
+    return out_prefix
+
+
+
+
+
+

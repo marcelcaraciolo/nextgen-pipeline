@@ -1,16 +1,19 @@
 #Annovar databases to download
 
 hg19:
-    - avsift
-    - 1000g2012feb
-    - 1000g2012apr
-    - snp137
-    - snp138
-    - clinvar_20140211
-    - refGene
-    - knownGene
-    - segdup
-    - dgv
-    - gwascatalog
-    - ensgene
-    - mce46way
+    - avsift: annovar
+    - ljb_all: annovar
+    - ljb2_all: annovar
+    #- cosmic68
+    #- 1000g2012feb
+    #- 1000g2012apr
+    #- snp137
+    #- snp138
+    #- clinvar_20140211
+    #- refGene
+    #- knownGene
+    #- segdup
+    #- dgv
+    #- gwascatalog
+    #- ensgene
+    #- mce46way

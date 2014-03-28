@@ -239,10 +239,17 @@ def download_annovar_dbs(args):
             db = yaml.load(annovar_db)
             for reference, dbs in db.iteritems():
                 for db in dbs:
-                    if not os.path.exists(os.path.join(args.tooldir, 'annovar/humandb/%s_%s.txt' % (reference, db))):
-                        cmd_execute = cmd % (annotation, reference , db,  os.path.join(args.tooldir, 'annovar/humandb'))
-                        if 'Failed' in  subprocess.check_output(cmd_execute, shell=True):
-                            print reference, db ,'--->', 'failed'
+                    if type(db) == dict:
+                        if not os.path.exists(os.path.join(args.tooldir, 'annovar/humandb/%s_%s.txt' % (reference, db.keys()[0]))):
+                            database, webfrom = db.keys()[0], db.values()[0]
+                            db = '-webfrom %s %s' % (webfrom , database)
+                            cmd_execute = cmd % (annotation, reference , db,  os.path.join(args.tooldir, 'annovar/humandb'))
+                            subprocess.call(cmd_execute, shell=True)
+                    else:
+                        if not os.path.exists(os.path.join(args.tooldir, 'annovar/humandb/%s_%s.txt' % (reference, db))):
+                            cmd_execute = cmd % (annotation, reference , db,  os.path.join(args.tooldir, 'annovar/humandb'))
+                            subprocess.call(cmd_execute, shell=True)
+
 
 def install_nextgen_data(args, REMOTES):
     download_dbsnp(args)

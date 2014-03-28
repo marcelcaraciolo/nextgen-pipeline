@@ -13,7 +13,9 @@ including the actual command which are run at each stage.
 '''
 from commands import make_reference_database, index_reference, align
 from commands import align2sam, sam2bam, dedup, realign_intervals
-from commands import realign, fix_mate
+from commands import realign, fix_mate, base_qual_recal_count
+from commands import base_qual_recal_tabulate, call_snps, filter_snps
+from commands import convert2annovar, annotate, summarize
 import sys
 import os
 import argparse
@@ -30,7 +32,8 @@ def check_fasta_files(fc_dir):
 
     return fasta_files
 
-def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference):
+
+def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference, dbsnp):
     #1. Get all fasta files and check if there is at least one to process.
     sequence_files = check_fasta_files(fc_dir)
 
@@ -41,6 +44,7 @@ def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference):
     index_reference(reference)
 
     for seq in sequence_files:
+        '''
         #4.Align sequence to the reference database.
         seq_align = align(workflow_config['aligner']['command'], global_config['bwa']['threads'],
                     reference, seq, work_dir)
@@ -62,6 +66,30 @@ def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference):
         #10. Fix mate information
         realigned_bam = fix_mate(workflow_config['fixmates']['command'], global_config['picard']['jvm_opts'],
                     os.path.join(tools_dir, 'picard-tools-1.109'), realigned_bam, work_dir)
+        #11. Count Covariates
+        recal_file = base_qual_recal_count(workflow_config['countcovariates']['command'], global_config['gatk']['jvm_opts'],
+                    tools_dir, reference, dbsnp, realigned_bam, work_dir)
+        #12. Table Recalibration
+        realigned_bam = base_qual_recal_tabulate(workflow_config['recaltabulate']['command'], global_config['gatk']['jvm_opts'],
+                    tools_dir, reference, recal_file, realigned_bam, work_dir'
+
+        '''
+        #13. Call Snps
+        #output_vcf = call_snps(workflow_config['callSNPs']['command'], global_config['gatk']['jvm_opts'], global_config['gatk']['threads'],
+        #            tools_dir, reference, dbsnp, '10.0', '10.0', '5000', '3', realigned_bam, work_dir)
+        output_vcf = '/Users/marcelcaraciolo/Projects/genomika/github/nextgen-pipeline/3806_S10_L001_R1_001.marked.realigned.fixed.recal.vcf'
+        #14. Filter Snps
+        filtered_vcf = filter_snps(workflow_config['filterSNPs']['command'], global_config['gatk']['jvm_opts'],
+                    tools_dir, reference, output_vcf, '', work_dir)
+        #15.Converting the vcf to .annovar format file
+        annovar_file = convert2annovar(workflow_config['convertAnnovar']['command'], tools_dir, filtered_vcf, work_dir)
+        #16. Annotate annnovar file using Annovar
+        annotation_file = annotate(workflow_config['annotate']['command'], tools_dir, annovar_file, work_dir)
+        #17. Summarize annovar file using Annovar
+        summary_file = summarize(workflow_config['summarize']['command'], tools_dir, annovar_file,
+                                        '1000g2012apr', '6500','137', 'refgene', 'hg19', work_dir)
+
+
 
 def parse_cl_args():
     '''Parse input commandline arguments, handling multiple cases.
@@ -79,6 +107,7 @@ def parse_cl_args():
     parser.add_argument('workflow', help='YAML file with details about the pipeline workflow', nargs='?')
     parser.add_argument('--reference', help="Human genome Reference to use as base.",
                     default = 'hg19')
+    parser.add_argument('--dbsnp', help="dbSnp Reference to use as base.")
     parser.add_argument('--workdir', help="Directory to process in. Defaults to current working directory",
                     default = os.getcwd())
     parser.add_argument('--tooldir', help="Directory where the tools are in. Defaults to current working directory",
@@ -121,10 +150,14 @@ def main(args, sys_args, parser):
             contents = f.read()
             workflowConfig = load(contents)
 
+    if not args.dbsnp:
+        raise IOError('dbsnp reference file not found')
+
     #check where tools dir is.
     tools_dir = os.path.abspath(args.tooldir)
 
-    run(newConfig['resources'], fc_dir, work_dir, tools_dir, workflowConfig['stages']['algorithm'], args.reference)
+    run(newConfig['resources'], fc_dir, work_dir, tools_dir, workflowConfig['stages']['algorithm'], args.reference,
+                        os.path.abspath(args.dbsnp))
 
 if __name__ == '__main__':
     parser = parse_cl_args()

@@ -35,3 +35,10 @@ stages:
             command: 'java %(jvmoptions)s -jar %(gatkdir)s/GenomeAnalysisTK.jar -nct %(threads)s -R %(ref)s -I %(bam)s --dbsnp %(dbsnp)s -T HaplotypeCaller -stand_emit_conf %(sec)s  -stand_call_conf %(scf)s -dcov %(dcov)s --genotyping_mode DISCOVERY --max_alternate_alleles %(alleles)s -o %(out)s'
         filterSNPs:
             command: "java %(jvmoptions)s -jar %(gatkdir)s/GenomeAnalysisTK.jar -T VariantFiltration -R %(ref)s --variant %(vcf)s %(expression)s -o %(out)s"
+        convertAnnovar: 
+            command: '%(annovardir)s/annovar/convert2annovar.pl %(vcf)s -format vcf4 -outfile %(out)s -allsample -include -withzyg'
+        annotate:
+            command: '%(annovardir)s/annovar/annotate_variation.pl --geneanno %(annovarfile)s %(annovardir)s/annovar/humandb --hgvs --buildver hg19 --outfile %(out)s'
+        summarize:
+            command: '%(annovardir)s/annovar/summarize_annovar.pl --outfile %(out)s --ver1000g %(ver1000g)s --veresp %(veresp)s --verdbsnp %(verdbsnp)s --genetype %(genetype)s  --remove --alltranscript --buildver %(buildver)s %(annovarfile)s %(annovardir)s/annovar/humandb'
+
