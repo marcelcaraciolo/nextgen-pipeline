@@ -167,3 +167,35 @@ def base_qual_recal_tabulate(command, command_options, gatk_dir, reference, reca
 
     return recal_bam
 
+def call_snps(command, command_options, threads, gatk_dir, reference, dbsnp, standard_emit_conf,
+                standard_call_conf, dcov, alleles, alignment, output_dir):
+    """
+    Use GATK HaplotypeGenotyper to call SNPs from recalibrated bams.
+    """
+    (path, name, ext) =  splitPath(alignment)
+    command_options = command_options[1]
+    if ext != '.bam':
+        sys.exit('call snp : alignment file %s does not have .bam extension' % alignment)
+    out_vcf = os.path.join(output_dir, name + '.vcf')
+    command = command % {'jvmoptions': command_options, 'out': out_vcf, 'dbsnp': dbsnp, 'alleles': alleles,
+                            'threads': threads, 'scf': standard_call_conf, 'sec':standard_emit_conf,
+                            'dcov': dcov, 'bam': alignment, 'gatkdir': gatk_dir, 'ref': reference + '.fasta'}
+    runCommand('Calling snps', command)
+
+    return out_vcf
+
+def filter_snps(command, command_options, gatk_dir, reference, vcf, filter_expression, output_dir):
+    '''
+    Use GATK VariantFiltration to filter raw SNP calls.
+    '''
+    (path, name, ext) =  splitPath(vcf)
+    command_options = command_options[1]
+    if ext != '.vcf':
+        sys.exit('filtering SNPs: vcf file %s does not have .vcf extension' % vcf)
+    out_vcf = os.path.join(output_dir, name + '.filtered.vcf')
+    command = command % {'jvmoptions': command_options, 'out': out_vcf,
+                    'vcf': vcf, 'gatkdir': gatk_dir, 'ref': reference + '.fasta', 'expression': filter_expression}
+    runCommand('Calling snps', command)
+
+    return out_vcf
+

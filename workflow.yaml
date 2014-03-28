@@ -32,6 +32,6 @@ stages:
         recaltabulate:
             command: 'java %(jvmoptions)s -jar %(gatkdir)s/GenomeAnalysisTK.jar -T PrintReads -I %(bam)s -R %(ref)s -BQSR %(recalfile)s -o %(out)s'
         callSNPs:
-            command: 'java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -nt %threads -R %ref -I %bam --dbsnp %dbsnp -T HaplotypeCaller -stand_emit_conf %sec  -stand_call_conf %scf -dcov %dcov -glm SNP --genotyping_mode DISCOVERY --max_alternate_alleles %alleles -o %out'
+            command: 'java %(jvmoptions)s -jar %(gatkdir)s/GenomeAnalysisTK.jar -nct %(threads)s -R %(ref)s -I %(bam)s --dbsnp %(dbsnp)s -T HaplotypeCaller -stand_emit_conf %(sec)s  -stand_call_conf %(scf)s -dcov %(dcov)s --genotyping_mode DISCOVERY --max_alternate_alleles %(alleles)s -o %(out)s'
         filterSNPs:
-            command: "java %jvmoptions -jar %gatkdir/GenomeAnalysisTK.jar -nt %threads -T VariantFiltration -R %ref --variant %vcf --filterExpression '%expression' --output_mode EMIT_ALL_SITES -o %out"
+            command: "java %(jvmoptions)s -jar %(gatkdir)s/GenomeAnalysisTK.jar -T VariantFiltration -R %(ref)s --variant %(vcf)s %(expression)s -o %(out)s"
