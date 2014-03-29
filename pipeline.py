@@ -11,6 +11,8 @@ The pipeline is configured by an options file in a python file
 including the actual command which are run at each stage.
 
 '''
+from collections import defaultdict
+from utils import parse_and_link
 from commands import make_reference_database, index_reference, align
 from commands import align2sam, sam2bam, dedup, realign_intervals
 from commands import realign, fix_mate, base_qual_recal_count
@@ -22,20 +24,27 @@ import argparse
 from yaml import load
 import glob
 
-def check_fasta_files(fc_dir):
-    fasta_files = glob.glob('%s/*.fastq' % fc_dir)
-    if len(fasta_files) <= 1:
-        if len(fasta_files) == 0:
-            exit('At least one sequence file must be specified')
-        if 'hg19' in fasta_files[0]:
+fastq_metadata = defaultdict(dict)
+
+def get_fastq_files(fc_dir, work_dir):
+    fastq_files = []
+    fastqz_files = glob.glob('%s/*.fastq.gz' % fc_dir)
+
+    if len(fastqz_files) < 1:
             exit('At least one sequence file must be specified')
 
-    return fasta_files
+    #now let's parse the metadata from each fastq.gz input files and
+    #construct the symbolic links to them.
+    for fastqz in fastqz_files:
+        symb_link = parse_and_link(fastqz, work_dir, fastq_metadata)
+        fastq_files.append(symb_link)
 
+    return fastq_files
 
 def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference, dbsnp):
     #1. Get all fasta files and check if there is at least one to process.
-    sequence_files = check_fasta_files(fc_dir)
+    sequence_files = get_fastq_files(fc_dir, work_dir)
+
 
     #2. Create reference database
     make_reference_database(workflow_config['indexer']['command'],'bwtsw', reference)
@@ -112,6 +121,8 @@ def parse_cl_args():
                     default = os.getcwd())
     parser.add_argument('--tooldir', help="Directory where the tools are in. Defaults to current working directory",
                     default = os.getcwd())
+    parser.add_argument('--logdir', help="Directory where the log files will be stored. Defaults to current working directory",
+                    default = os.getcwd())
     return parser
 
 def make_output_dir(dir):
@@ -122,7 +133,7 @@ def make_output_dir(dir):
         except IOError, e:
             raise IOError('%s\nFailed to make the directory %s' (e, dir))
 
-def main(args, sys_args, parser):
+def main(args, sys_args , parser):
     #read the global config and extract info.
     if os.path.exists(args.global_config):
         with open(args.global_config) as f:
