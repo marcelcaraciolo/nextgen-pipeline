@@ -38,13 +38,17 @@ def parse_and_link(filename, out_dir, metadata):
     new_fastq = '%s_%s_L%s_%s.fastq.gz' % (identifier +'_'+ sample, run_id, lane, pair)
     out_dir = out_dir + '/' + '_'.join([identifier, sample])
     make_sample_dir(out_dir)
-    subprocess.call(['cp', filename, os.path.join(out_dir, new_fastq)])
+    subprocess.call(['cp','-f', filename, os.path.join(out_dir, new_fastq)])
     new_fastq = os.path.join(out_dir, new_fastq)
-    metadata[os.path.basename(new_fastq)]['sample'] = sample
-    metadata[os.path.basename(new_fastq)]['run_id'] = run_id
-    metadata[os.path.basename(new_fastq)]['lane'] = lane
-    metadata[os.path.basename(new_fastq)]['pair'] = pair
-    metadata[os.path.basename(new_fastq)]['identifier'] = identifier
+    basename =  os.path.splitext(os.path.basename(new_fastq))[0]
+    metadata[basename]['sample'] = sample
+    metadata[basename]['run_id'] = run_id
+    metadata[basename]['lane'] = lane
+    metadata[basename]['pair'] = pair
+    metadata[basename]['identifier'] = identifier
+    metadata[basename]['out_dir'] = out_dir
 
     return new_fastq
+
+
 

@@ -5,7 +5,7 @@ All pipeline commands for NextGen Sequencing Pipeline (NGS)
 import sys
 import os
 from utils import runCommand, splitPath
-
+import subprocess
 
 def make_metadata_string(metadata):
     return r'-r "@RG\tID:%s\tLB:%s\tSM:%s\tPL:%s"' % (metadata['ID'], metadata['LB'], metadata['SM'],
@@ -31,10 +31,69 @@ def index_reference(reference):
     else:
        sys.exit('check if the bwa index ran successfully')
 
-def align(command, threads, reference, sequence, output_dir):
+
+def fastqc(command, sequences, fastq_metadata, output_dir):
+    '''
+    Run FastQC on each fastq file.
+    '''
+    for fastq_file in sequences:
+        command = command % {'outdir': output_dir, 'seq': fastq_file}
+        runCommand('Checking fastq quality', command)
+
+def can_pipe(command, fastq_file):
+    '''
+    bwa-mem handles longer (> 70bp) reads with improved piping.
+    Randomly samples 5000 reads from the first two million.
+    Default to no piping if more than 75% of the sampled reads are small.
+    '''
+    min_size = 70
+    thresh = 0.75
+    head_count = 8000000
+    tocheck = 5000
+    cat_cmd = 'cat {fastq_file}'
+    cmd = (cat_cmd + " | head -n {head_count} | "
+           "{command} sample -s42 - {tocheck} | "
+           "awk '{{if(NR%4==2) print length($1)}}' | sort | uniq -c")
+    count_out = subprocess.check_output(cmd.format(**locals()), shell=True,
+                                        executable="/bin/bash", stderr=open("/dev/null", "w"))
+    if not count_out.strip():
+        raise IOError("Failed to check fastq file sizes with: %s" % cmd.format(**locals()))
+
+    shorter = 0
+    for count, size in (l.strip().split() for l in count_out.strip().split("\n")):
+        if int(size) < min_size:
+            shorter += int(count)
+    return (float(shorter) / float(tocheck)) <= thresh
+
+def align_with_mem(command, threads, reference, fastq_file, pair_file, fastq_metadata, output_dir):
+    '''
+    Perform alignment on two paired-end fastq files to a reference genome to produce a sam file.
+    '''
+    (path, name, ext) = splitPath(fastq_file)
+    (pathP, nameP, extP) = splitPath(pair_file)
+
+    if ext != '.fastq' or extP != '.fastq':
+        sys.exit('align: one of the fastq file %s or %s does not have .fastq extension' % (fastq_file, pair_file))
+
+    sam_file = os.path.join(output_dir, os.path.splitext(os.path.basename(fastq_file))[0]) +  '.sam'
+    sample =  fastq_metadata[os.path.basename(fastq_file)]['sample']
+    run_id =  fastq_metadata[os.path.basename(fastq_file)]['run_id']
+    lane =   fastq_metadata[os.path.basename(fastq_file)]['lane']
+    identifier =  fastq_metadata[os.path.basename(fastq_file)]['identifier']
+    readgroup_metadata = {'PL': 'ILLUMINA', 'SM': sample,
+                            'LB': '%s_%s_%s_Lane%s' % (identifier, sample, run_id, lane),
+                            'ID':  '%s_%s_%s_Lane%s' % (identifier, sample, run_id, lane) }
+    metadata_str = make_metadata_string(readgroup_metadata)
+
+    command = command % {'threads': threads, 'meta': metadata_str, 'ref': reference,
+                                'seq': fastq_file , 'pair': pair_file, 'out': sam_file}
+    runCommand('bwa mem alignment from fastq: %s' % sample, command)
+
+    return sam_file
+
+def align(command, threads, reference, sequence, fastq_metadata, output_dir):
     '''
     Align sequence reads to the reference genome. This is the bwa's first stage, bwa aln.
-    Use -I for sequence files.
     '''
     (path, name, ext) = splitPath(sequence)
     if ext != '.fastq':
@@ -46,25 +105,77 @@ def align(command, threads, reference, sequence, output_dir):
 
     return alignment_file
 
-def align2sam(command, reference, alignment, sequence, output_dir):
-    """
-    Convert alignments to SAM format. Turn bwa sai alignments into a sam file
-    """
-    (path, name, ext) = splitPath(alignment)
-    if ext != '.sai':
-        sys.exit('align2Sam: alignment file %s does not have .sai extension' % alignment)
-    sam_file = os.path.join(output_dir, name + '.sam')
-    readgroup_metadata = {'PL': 'ILLUMINA', 'SM': name, 'LB': name, 'ID': name}
+def alignPE2sam(command, reference, fastq_file, pair_file, sai_fastq_file, sai_pair_file,
+                        fastq_metadata, output_dir):
+    '''
+    Convert alignments to SAM format. Turn bwa sai alignments into a sam file.
+    It uses bwa sampe commandline. (Pair End only)
+    '''
+    (path, name, ext) = splitPath(sai_fastq_file)
+    (pathP, nameP, extP) = splitPath(sai_pair_file)
+    if ext != '.sai' or extP != '.sai':
+        sys.exit('alignPE2sam: one .sai file %s or %s does not have .sai extension' % (sai_fastq_file, sai_pair_file))
+
+    sam_file = os.path.join(output_dir, os.path.splitext(os.path.basename(fastq_file))[0]) +  '.sam'
+    sample =  fastq_metadata[os.path.basename(fastq_file)]['sample']
+    run_id =  fastq_metadata[os.path.basename(fastq_file)]['run_id']
+    lane =   fastq_metadata[os.path.basename(fastq_file)]['lane']
+    identifier =  fastq_metadata[os.path.basename(fastq_file)]['identifier']
+    readgroup_metadata = {'PL': 'ILLUMINA', 'SM': sample,
+                            'LB': '%s_%s_%s_Lane%s' % (identifier, sample, run_id, lane),
+                            'ID':  '%s_%s_%s_Lane%s' % (identifier, sample, run_id, lane) }
     metadata_str = make_metadata_string(readgroup_metadata)
-    command =  command % {'out': sam_file, 'ref': reference, 'align': alignment,
-                                      'seq': sequence, 'meta': metadata_str}
-    runCommand('Align to Sam', command)
+
+    command = command % {'meta': metadata_str, 'ref': reference, 'align': sai_fastq_file, 'alignP': sai_pair_file,
+                                'seq': fastq_file , 'pair': pair_file, 'out': sam_file}
+    runCommand('bwa sampe alignment from fastq: %s' % sample, command)
 
     return sam_file
 
-def sam2bam(command, command_options, piccard_dir, alignment, output_dir):
+def align2sam(command, reference, fastq_file, sai_fastq_file, fastq_metadata, output_dir):
+    """
+    Convert alignments to SAM format. Turn bwa sai alignments into a sam file.
+    It uses bwa samse commandline.
+    """
+    (path, name, ext) = splitPath(sai_fastq_file)
+    if ext != '.sai':
+        sys.exit('align2Sam: alignment file %s does not have .sai extension' % sai_fastq_file)
+
+    sam_file = os.path.join(output_dir, os.path.splitext(os.path.basename(fastq_file))[0]) +  '.sam'
+    sample =  fastq_metadata[os.path.basename(fastq_file)]['sample']
+    run_id =  fastq_metadata[os.path.basename(fastq_file)]['run_id']
+    lane =   fastq_metadata[os.path.basename(fastq_file)]['lane']
+    identifier =  fastq_metadata[os.path.basename(fastq_file)]['identifier']
+    readgroup_metadata = {'PL': 'ILLUMINA', 'SM': sample,
+                            'LB': '%s_%s_%s_Lane%s' % (identifier, sample, run_id, lane),
+                            'ID':  '%s_%s_%s_Lane%s' % (identifier, sample, run_id, lane) }
+    metadata_str = make_metadata_string(readgroup_metadata)
+
+    command =  command % {'out': sam_file, 'ref': reference, 'align': sai_fastq_file,
+                                      'seq': fastq_file, 'meta': metadata_str}
+
+    runCommand('bwa samse alignment from fastq: %s' % sample, command)
+
+    return sam_file
+
+def samP2bam(command, command_options, piccard_dir, alignment, output_dir):
     """
     Convert sam to bam and sort, using Picard.
+    """
+    (path, name, ext) = splitPath(alignment)
+    command_options = command_options[1]
+    if ext != '.sam':
+        sys.exit('sam2bam: alignment file %s does not have .sam extension' % alignment)
+    bam_file = os.path.join(output_dir, name + '.bam')
+    command = command % {'out': bam_file, 'sam': alignment, 'jvmoptions': command_options,
+            'picarddir': piccard_dir}
+    runCommand('Sam to Sorted Bam', command)
+
+    return bam_file
+
+def samS2bam(command, command_options, piccard_dir, alignment, output_dir):
+    """
+    Convert sam to bam and sort, using Samtools.
     """
     (path, name, ext) = splitPath(alignment)
     command_options = command_options[1]

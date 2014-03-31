@@ -63,11 +63,17 @@ def install_data_tools(sys_argv, args, nextgen):
                 args.datadir == os.path.abspath(os.path.expanduser(x))]
 
     print('Installing nextgen tools')
-    #install homebrew, BWA, Picard, SamTools, GATK and Annovar
+    #install homebrew, FastQC, BWA, Picard, SamTools, GATK and Annovar
+
+    install_fastqc()
 
     install_bwa()
 
+    install_seqtk()
+
     install_picard(args)
+
+    install_solexaqa(args)
 
     install_samtools()
 
@@ -98,6 +104,20 @@ def install_bwa():
     url_bwa_brew = 'https://raw.github.com/Homebrew/homebrew-science/master/bwa.rb'
     subprocess.call('brew install %s' % url_bwa_brew, shell=True)
 
+def install_fastqc():
+    '''FastQC: a quality control tool for high throughput sequence data.
+        http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+    '''
+    url_fastqc_brew = 'https://raw.githubusercontent.com/Homebrew/homebrew-science/master/fastqc.rb'
+    subprocess.call('brew install %s' % url_fastqc_brew, shell=True)
+
+def install_seqtk():
+    ''' seqtk: Toolkit for processing sequences in FASTA/Q formats.
+    https://github.com/lh3/seqtk
+    '''
+    url_seqtk_brew = 'https://raw.githubusercontent.com/Homebrew/homebrew-science/master/seqtk.rb'
+    subprocess.call('brew install %s' % url_seqtk_brew, shell=True)
+
 def install_picard(args):
     '''Command-line utilities that manipulate BAM files with a Java API.
     http://picard.sourceforge.net/
@@ -110,6 +130,21 @@ def install_picard(args):
             z.extractall(args.tooldir)
         sudo_cmd = ["sudo"]
         cmd = ['rm', '-f', 'picard-tools-%s.zip' % version]
+        subprocess.check_call(sudo_cmd + cmd)
+
+def install_solexaqa(args):
+    '''
+    Command-line utilities that checks the format and quality of fastq files.
+    http://solexaqa.sourceforge.net/
+    '''
+    url = 'http://downloads.sourceforge.net/project/solexaqa/src/SolexaQA_v.%s.zip'
+    version = '2.2'
+    if not os.path.exists(os.path.join(args.tooldir,('SolexaQA_v.%s' % version))):
+        subprocess.check_call(['wget', url % (version)])
+        with zipfile.ZipFile('SolexaQA_v.%s.zip' % version, 'r') as z:
+            z.extractall(args.tooldir)
+        sudo_cmd = ["sudo"]
+        cmd = ['rm', '-f', 'SolexaQA_v.%s.zip' % version]
         subprocess.check_call(sudo_cmd + cmd)
 
 def install_samtools():
@@ -237,16 +272,12 @@ def download_annovar_dbs(args):
         annotation = os.path.join(args.tooldir, 'annovar/annotate_variation.pl')
         with open('annovar_databases.yaml') as annovar_db:
             db = yaml.load(annovar_db)
-            for reference, dbs in db.iteritems():
-                for db in dbs:
-                    if type(db) == dict:
-                        if not os.path.exists(os.path.join(args.tooldir, 'annovar/humandb/%s_%s.txt' % (reference, db.keys()[0]))):
-                            database, webfrom = db.keys()[0], db.values()[0]
-                            db = '-webfrom %s %s' % (webfrom , database)
-                            cmd_execute = cmd % (annotation, reference , db,  os.path.join(args.tooldir, 'annovar/humandb'))
-                            subprocess.call(cmd_execute, shell=True)
-                    else:
+            for reference, databases in db.iteritems():
+                for webfrom, db_list in databases.iteritems():
+                    for db in db_list:
+                        print db, webfrom, reference
                         if not os.path.exists(os.path.join(args.tooldir, 'annovar/humandb/%s_%s.txt' % (reference, db))):
+                            db = '-webfrom %s %s' % (webfrom , db)
                             cmd_execute = cmd % (annotation, reference , db,  os.path.join(args.tooldir, 'annovar/humandb'))
                             subprocess.call(cmd_execute, shell=True)
 

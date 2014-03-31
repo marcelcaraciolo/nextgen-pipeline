@@ -7,14 +7,22 @@ stages:
     description: 'Run from Illumina'
     genome_build: 'ucsc.hg19'
     algorithm:
+        samtools_view:
+            command: 'samtools view -b -S -u %(bam)s' 
+        seqtk:
+            command: 'seqtk'
+        fastqc:
+            command: 'fastqc --quiet -o %(outdir)s %(seq)s'
+        bwamem:
+            command: 'bwa mem -M -t %(threads)s %(meta)s -v 2 %(ref)s %(seq)s %(pair)s > %(out)s'
         aligner:
-            command: 'bwa aln -f %(out)s -t %(threads)d %(encodingflag)s %(ref)s %(seq)s'
+            command: 'bwa aln -n 2 -k 2 -t %(threads)d %(encodingflag)s %(ref)s %(seq)s > %(out)s'
         indexer:
             command: 'bwa index -a %(algorithm)s -p %(prefix)s %(seq)s'
         samse:
             command: 'bwa samse -f %(out)s %(meta)s %(ref)s %(align)s %(seq)s'
         sampe:
-            command: 'bwa sampe -f %(out)s %(meta)s %(ref)s %(align1)s %(align2)s %(seq1)s %(seq2)s'
+            command: 'bwa sampe -f %(out)s %(meta)s %(ref)s %(align)s %(alignP)s %(seq)s %(pair)s'
         sam2bam:
             command: 'java %(jvmoptions)s -jar %(picarddir)s/SortSam.jar SO=coordinate INPUT=%(sam)s OUTPUT=%(out)s VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true'
         markduplicates:

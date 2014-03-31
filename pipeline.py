@@ -11,13 +11,11 @@ The pipeline is configured by an options file in a python file
 including the actual command which are run at each stage.
 
 '''
+import logging
 from collections import defaultdict
 from utils import parse_and_link
-from commands import make_reference_database, index_reference, align
-from commands import align2sam, sam2bam, dedup, realign_intervals
-from commands import realign, fix_mate, base_qual_recal_count
-from commands import base_qual_recal_tabulate, call_snps, filter_snps
-from commands import convert2annovar, annotate, summarize
+from commands import *
+import subprocess
 import sys
 import os
 import argparse
@@ -25,6 +23,12 @@ from yaml import load
 import glob
 
 fastq_metadata = defaultdict(dict)
+
+def get_logger(logfile, level=logging.INFO):
+    log_handler = open(logfile, 'w')
+    logging.basicConfig(stream=log_handler, level=level)
+
+    return log_handler
 
 def get_fastq_files(fc_dir, work_dir):
     fastq_files = []
@@ -41,10 +45,21 @@ def get_fastq_files(fc_dir, work_dir):
 
     return fastq_files
 
-def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference, dbsnp):
+def extract_fastq_files(sample_folder):
+    gz_files = glob.glob('%s/*.fastq.gz' % sample_folder)
+    for gz_file in gz_files:
+        subprocess.call(['gzip', '-f', '-d', gz_file])
+    return glob.glob('%s/*.fastq' % sample_folder)
+
+def next_sample(fastqz_files):
+    all_sample_folders =  [fastq_metadata[os.path.splitext(os.path.basename(fastqz_file))[0]]['out_dir']
+                                        for fastqz_file in fastqz_files]
+    for sample in list(set(all_sample_folders)):
+        yield sample
+
+def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference, dbsnp, is_picard_to_bam):
     #1. Get all fasta files and check if there is at least one to process.
     sequence_files = get_fastq_files(fc_dir, work_dir)
-
 
     #2. Create reference database
     make_reference_database(workflow_config['indexer']['command'],'bwtsw', reference)
@@ -52,13 +67,57 @@ def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference, 
     #3.Index the reference
     index_reference(reference)
 
-    for seq in sequence_files:
+    for sample_folder in next_sample(sequence_files):
+        #4. create output subdirectories
+        fastqc_dir = make_output_dir(os.path.join(sample_folder, 'fastqc'))
+        sambam_dir =  make_output_dir(os.path.join(sample_folder, 'alignments'))
+        variant_dir = make_output_dir(os.path.join(sample_folder, 'variant_calls'))
+        coverage_dir = make_output_dir(os.path.join(sample_folder, 'coverage'))
+        annovar_dir  = make_output_dir(os.path.join(sample_folder, 'annovar'))
+        results_dir =  make_output_dir(os.path.join(sample_folder, 'results'))
+
+        #5.Precheck -  extracting fastqfiles.
+        sequence_files = sorted(extract_fastq_files(sample_folder))
+        #5.Run fastqc on each fastq file.
+        #fastqc(workflow_config['fastqc']['command'],  sequence_files, fastq_metadata, fastqc_dir)
+        #6. Align sequence to the  reference database.
+        if len(sequence_files) == 2:
+            #two paired-end fastq files alignment.
+            fastq_file, pair_file = sequence_files
+            if  can_pipe(workflow_config['seqtk']['command'], fastq_file):
+                sam_ouput = align_with_mem(workflow_config['bwamem']['command'], global_config['bwa']['threads'],
+                                    reference, fastq_file, pair_file, fastq_metadata, sambam_dir)
+            else:
+                #two paired-end fastq files alignment not piped.
+                sai_fastq_file = align(workflow_config['aligner']['command'], global_config['bwa']['threads'],
+                                    reference, fastq_file, fastq_metadata, sambam_dir)
+                sai_pair_file = align(workflow_config['aligner']['command'], global_config['bwa']['threads'],
+                                    reference, pair_file, fastq_metadata, sambam_dir)
+
+                sam_output = alignPE2sam(workflow_config['sampe']['command'], reference, fastq_file,
+                                    pair_file, sai_fastq_file, sai_pair_file, fastq_metadata, sambam_dir)
+
+        elif len(sequence_files) == 1:
+            #one fastq file alignment.
+            fastq_file = sequence_files[0]
+            sai_fastq_file = align(workflow_config['aligner']['command'], global_config['bwa']['threads'],
+                    reference, fastq_file, fastq_metadata, sambam_dir)
+            sam_output = align2sam(workflow_config['samse']['command'], reference, fastq_file, sai_fastq_file,
+                                    fastq_metadata, sambam_dir)
+        else:
+            print('Multiple or no fastq files, please check the input files at %s' % sample_folder)
+            continue
+
+        #7. Convert SAM to BAM
+        if (is_picard_to_bam):
+            #if it is picard the tool to convert to bam
+            seq_bam = samP2bam(workflow_config['samP2bam']['command'], global_config['picard']['jvm_opts'],
+                    os.path.join(tools_dir, 'picard-tools-1.109'), sam_output, sambam_dir)
+        else:
+            seq_bam = samS2bam(workflow_config['samS2bam']['command'], global_config['samtools']['threads'],
+                    sam_output, sambam_dir)
+
         '''
-        #4.Align sequence to the reference database.
-        seq_align = align(workflow_config['aligner']['command'], global_config['bwa']['threads'],
-                    reference, seq, work_dir)
-        #5. Convert alignment to SAM format.
-        seq_sam = align2sam(workflow_config['samse']['command'], reference, seq_align, seq, work_dir)
         #6. Convert SAM to BAM
         #@TODO: make picard-tools directory without version to normalize for any releases.
         seq_bam = sam2bam(workflow_config['sam2bam']['command'], global_config['picard']['jvm_opts'],
@@ -82,7 +141,6 @@ def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference, 
         realigned_bam = base_qual_recal_tabulate(workflow_config['recaltabulate']['command'], global_config['gatk']['jvm_opts'],
                     tools_dir, reference, recal_file, realigned_bam, work_dir'
 
-        '''
         #13. Call Snps
         #output_vcf = call_snps(workflow_config['callSNPs']['command'], global_config['gatk']['jvm_opts'], global_config['gatk']['threads'],
         #            tools_dir, reference, dbsnp, '10.0', '10.0', '5000', '3', realigned_bam, work_dir)
@@ -97,8 +155,7 @@ def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference, 
         #17. Summarize annovar file using Annovar
         summary_file = summarize(workflow_config['summarize']['command'], tools_dir, annovar_file,
                                         '1000g2012apr', '6500','137', 'refgene', 'hg19', work_dir)
-
-
+        '''
 
 def parse_cl_args():
     '''Parse input commandline arguments, handling multiple cases.
@@ -121,6 +178,7 @@ def parse_cl_args():
                     default = os.getcwd())
     parser.add_argument('--tooldir', help="Directory where the tools are in. Defaults to current working directory",
                     default = os.getcwd())
+    parser.add_argument('--bamconverter', help='Tool to convert sam 2 bam.', choices=['samtools', 'picard'], default = 'samtools')
     parser.add_argument('--logdir', help="Directory where the log files will be stored. Defaults to current working directory",
                     default = os.getcwd())
     return parser
@@ -132,6 +190,7 @@ def make_output_dir(dir):
             os.mkdir(dir, 0777)
         except IOError, e:
             raise IOError('%s\nFailed to make the directory %s' (e, dir))
+    return dir
 
 def main(args, sys_args , parser):
     #read the global config and extract info.
@@ -152,6 +211,8 @@ def main(args, sys_args , parser):
     work_dir = os.path.abspath(args.workdir)
     make_output_dir(work_dir)
 
+    is_picard_to_bam =  False if args.bamconverter == 'samtools' else True
+
     if args.workflow:
         with open(args.workflow) as f:
             contents = f.read()
@@ -167,8 +228,12 @@ def main(args, sys_args , parser):
     #check where tools dir is.
     tools_dir = os.path.abspath(args.tooldir)
 
+    #start the logger
+    make_output_dir(args.logdir)
+    logger = get_logger(os.path.join(args.logdir, 'pipeline.log'))
+
     run(newConfig['resources'], fc_dir, work_dir, tools_dir, workflowConfig['stages']['algorithm'], args.reference,
-                        os.path.abspath(args.dbsnp))
+                            os.path.abspath(args.dbsnp), is_picard_to_bam)
 
 if __name__ == '__main__':
     parser = parse_cl_args()
