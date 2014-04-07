@@ -173,17 +173,18 @@ def samP2bam(command, command_options, piccard_dir, alignment, output_dir):
 
     return bam_file
 
-def samS2bam(command, command_options, piccard_dir, alignment, output_dir):
+def samS2bam(command, command_options, threads, alignment, output_dir):
     """
     Convert sam to bam and sort, using Samtools.
     """
     (path, name, ext) = splitPath(alignment)
-    command_options = command_options[1]
+    command_options = command_options
     if ext != '.sam':
-        sys.exit('sam2bam: alignment file %s does not have .sam extension' % alignment)
-    bam_file = os.path.join(output_dir, name + '.bam')
-    command = command % {'out': bam_file, 'sam': alignment, 'jvmoptions': command_options,
-            'picarddir': piccard_dir}
+        sys.exit('sam2Sbam: alignment file %s does not have .sam extension' % alignment)
+    bam_file = os.path.join(output_dir, name)
+    command = command % {'out': bam_file, 'sam': alignment, 'max_mem': command_options,
+                    'threads': threads}
+    print command, '<---'
     runCommand('Sam to Sorted Bam', command)
 
     return bam_file

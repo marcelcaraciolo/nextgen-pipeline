@@ -85,7 +85,7 @@ def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference, 
             #two paired-end fastq files alignment.
             fastq_file, pair_file = sequence_files
             if  can_pipe(workflow_config['seqtk']['command'], fastq_file):
-                sam_ouput = align_with_mem(workflow_config['bwamem']['command'], global_config['bwa']['threads'],
+                sam_output = align_with_mem(workflow_config['bwamem']['command'], global_config['bwa']['threads'],
                                     reference, fastq_file, pair_file, fastq_metadata, sambam_dir)
             else:
                 #two paired-end fastq files alignment not piped.
@@ -114,8 +114,8 @@ def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference, 
             seq_bam = samP2bam(workflow_config['samP2bam']['command'], global_config['picard']['jvm_opts'],
                     os.path.join(tools_dir, 'picard-tools-1.109'), sam_output, sambam_dir)
         else:
-            seq_bam = samS2bam(workflow_config['samS2bam']['command'], global_config['samtools']['threads'],
-                    sam_output, sambam_dir)
+            seq_bam = samS2bam(workflow_config['samS2bam']['command'], global_config['samtools']['memory'],
+                    global_config['samtools']['threads'], sam_output, sambam_dir)
 
         '''
         #6. Convert SAM to BAM

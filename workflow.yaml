@@ -23,8 +23,10 @@ stages:
             command: 'bwa samse -f %(out)s %(meta)s %(ref)s %(align)s %(seq)s'
         sampe:
             command: 'bwa sampe -f %(out)s %(meta)s %(ref)s %(align)s %(alignP)s %(seq)s %(pair)s'
-        sam2bam:
+        samP2bam:
             command: 'java %(jvmoptions)s -jar %(picarddir)s/SortSam.jar SO=coordinate INPUT=%(sam)s OUTPUT=%(out)s VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true'
+        samS2bam:
+            command: 'samtools view -Sbu %(sam)s | samtools sort -@ %(threads)s -m %(max_mem)s - %(out)s'
         markduplicates:
             command: 'java %(jvmoptions)s -jar %(picarddir)s/MarkDuplicates.jar INPUT=%(bam)s OUTPUT=%(out)s METRICS_FILE=%(log)s CREATE_INDEX=true VALIDATION_STRINGENCY=LENIENT'
         realigner:
