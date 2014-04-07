@@ -184,10 +184,26 @@ def samS2bam(command, command_options, threads, alignment, output_dir):
     bam_file = os.path.join(output_dir, name)
     command = command % {'out': bam_file, 'sam': alignment, 'max_mem': command_options,
                     'threads': threads}
-    print command, '<---'
     runCommand('Sam to Sorted Bam', command)
 
-    return bam_file
+    return bam_file + '.bam'
+
+def indexbam(command, alignment, output_dir):
+    '''
+    Index alignment file (.bam) using Samtools
+    '''
+    (path, name, ext) = splitPath(alignment)
+    if ext != '.bam':
+        sys.exit('indexbam: alignment file %s does not have .bam extension' % alignment)
+    command = command % {'bam': alignment}
+
+    runCommand('Indexing alignment file', command)
+
+    index_file = os.path.join(output_dir, name.replace('.bam', '.bai'))
+
+    print command
+
+    return index_file
 
 def dedup(command, command_options, piccard_dir, alignment, output_dir):
     """

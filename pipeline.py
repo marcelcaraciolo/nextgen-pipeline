@@ -116,15 +116,14 @@ def run(global_config, fc_dir, work_dir, tools_dir, workflow_config, reference, 
         else:
             seq_bam = samS2bam(workflow_config['samS2bam']['command'], global_config['samtools']['memory'],
                     global_config['samtools']['threads'], sam_output, sambam_dir)
+            #After using samtools to convert to SAM let's use the samtools index to index it.
+            index_bam = indexbam(workflow_config['bamindexer']['command'], seq_bam, sambam_dir)
 
-        '''
-        #6. Convert SAM to BAM
-        #@TODO: make picard-tools directory without version to normalize for any releases.
-        seq_bam = sam2bam(workflow_config['sam2bam']['command'], global_config['picard']['jvm_opts'],
-                    os.path.join(tools_dir, 'picard-tools-1.109'), seq_sam, work_dir)
         #7. Mark PCR Duplicates
         marked_seq_bam = dedup(workflow_config['markduplicates']['command'], global_config['picard']['jvm_opts'],
-                    os.path.join(tools_dir, 'picard-tools-1.109'), seq_bam, work_dir)
+                    os.path.join(tools_dir, 'picard-tools-1.109'), seq_bam, sambam_dir)
+
+        '''
         #8. Find suspect intervals for realignment.
         bam_list = realign_intervals(workflow_config['realigner']['command'], global_config['gatk']['jvm_opts'],
                     tools_dir, reference, marked_seq_bam, work_dir)
